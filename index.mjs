@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 
 const server = createServer((req, res) => {
-    // 1. CONFIGURACIÓN DE CORS
+    // Configuración de cabeceras CORS
     const headers = {
         'Access-Control-Allow-Origin': '*', 
         'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',
@@ -9,60 +9,54 @@ const server = createServer((req, res) => {
         'Content-Type': 'application/json'
     };
 
-    // Responder a la petición pre-flight de CORS
+    // Manejo de petición pre-flight
     if (req.method === 'OPTIONS') {
         res.writeHead(204, headers);
         res.end();
-        return; // Ahora este return está correctamente dentro de la función del servidor
+        return; // Ahora está correctamente dentro de la función
     }
 
     const url = new URL(req.url, `https://${req.headers.host}`);
     const pathname = url.pathname;
 
-    // 2. RUTA PARA PATH PARAMS
+    // Ruta Path Params
     if (pathname.startsWith('/path/')) {
         const partes = pathname.split('/');
         const n1 = Number(partes[2]) || 0;
         const n2 = Number(partes[3]) || 0;
         res.writeHead(200, headers);
-        res.end(JSON.stringify({ resultado: n1 + n2, metodo: "Path Params" }));
+        res.end(JSON.stringify({ resultado: n1 + n2 }));
         return;
     }
 
-    // 3. RUTA PARA QUERY PARAMS
+    // Ruta Query Params
     if (pathname === '/query') {
         const n1 = Number(url.searchParams.get('n1')) || 0;
         const n2 = Number(url.searchParams.get('n2')) || 0;
         res.writeHead(200, headers);
-        res.end(JSON.stringify({ resultado: n1 + n2, metodo: "Query Params" }));
+        res.end(JSON.stringify({ resultado: n1 + n2 }));
         return;
     }
 
-    // 4. RUTA PARA BODY PARAMS (POST)
+    // Ruta Body Params (POST)
     if (pathname === '/body' && req.method === 'POST') {
-        let cuerpo = '';
-        req.on('data', chunk => { cuerpo += chunk; });
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
         req.on('end', () => {
-            try {
-                const datos = JSON.parse(cuerpo);
-                const n1 = Number(datos.n1) || 0;
-                const n2 = Number(datos.n2) || 0;
-                res.writeHead(200, headers);
-                res.end(JSON.stringify({ resultado: n1 + n2, metodo: "Body Params" }));
-            } catch (e) {
-                res.writeHead(400, headers);
-                res.end(JSON.stringify({ error: "JSON no válido" }));
-            }
+            const data = JSON.parse(body || '{}');
+            const n1 = Number(data.n1) || 0;
+            const n2 = Number(data.n2) || 0;
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ resultado: n1 + n2 }));
         });
         return;
     }
 
-    // Si no coincide ninguna ruta
     res.writeHead(404, headers);
-    res.end(JSON.stringify({ error: "Ruta no encontrada" }));
+    res.end(JSON.stringify({ error: "No encontrado" }));
 });
 
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-    console.log(`Servidor listo en el puerto ${PORT}`);
+    console.log(`Servidor en puerto ${PORT}`);
 });
