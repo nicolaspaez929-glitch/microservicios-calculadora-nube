@@ -1,62 +1,49 @@
-import { createServer } from 'node:http';
+import express from 'express';
+import cors from 'cors';
 
-const server = createServer((req, res) => {
-    // Configuración de cabeceras CORS
-    const headers = {
-        'Access-Control-Allow-Origin': '*', 
-        'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Content-Type': 'application/json'
-    };
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-    // Manejo de petición pre-flight
-    if (req.method === 'OPTIONS') {
-        res.writeHead(204, headers);
-        res.end();
-        return; // Ahora está correctamente dentro de la función
+// Función auxiliar para calcular (Evita repetir código)
+const calcular = (n1, n2, op) => {
+    const num1 = Number(n1);
+    const num2 = Number(n2);
+    
+    switch (op) {
+        case 'sumar': return num1 + num2;
+        case 'restar': return num1 - num2;
+        case 'multiplicar': return num1 * num2;
+        case 'dividir': return num2 !== 0 ? num1 / num2 : 'Error: Div entre 0';
+        default: return 'Operación no válida';
     }
+};
 
-    const url = new URL(req.url, `https://${req.headers.host}`);
-    const pathname = url.pathname;
-
-    // Ruta Path Params
-    if (pathname.startsWith('/path/')) {
-        const partes = pathname.split('/');
-        const n1 = Number(partes[2]) || 0;
-        const n2 = Number(partes[3]) || 0;
-        res.writeHead(200, headers);
-        res.end(JSON.stringify({ resultado: n1 + n2 }));
-        return;
-    }
-
-    // Ruta Query Params
-    if (pathname === '/query') {
-        const n1 = Number(url.searchParams.get('n1')) || 0;
-        const n2 = Number(url.searchParams.get('n2')) || 0;
-        res.writeHead(200, headers);
-        res.end(JSON.stringify({ resultado: n1 + n2 }));
-        return;
-    }
-
-    // Ruta Body Params (POST)
-    if (pathname === '/body' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk; });
-        req.on('end', () => {
-            const data = JSON.parse(body || '{}');
-            const n1 = Number(data.n1) || 0;
-            const n2 = Number(data.n2) || 0;
-            res.writeHead(200, headers);
-            res.end(JSON.stringify({ resultado: n1 + n2 }));
-        });
-        return;
-    }
-
-    res.writeHead(404, headers);
-    res.end(JSON.stringify({ error: "No encontrado" }));
+// 1. MÉTODO QUERY PARAMS
+// Ejemplo: /query?n1=10&n2=5&op=sumar
+app.get('/query', (req, res) => {
+    const { n1, n2, op } = req.query;
+    const resultado = calcular(n1, n2, op);
+    res.json({ metodo: 'Query', operacion: op, resultado });
 });
 
-const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => {
-    console.log(`Servidor en puerto ${PORT}`);
+// 2. MÉTODO PATH PARAMS
+// Ejemplo: /path/sumar/10/5
+app.get('/path/:op/:n1/:n2', (req, res) => {
+    const { op, n1, n2 } = req.params;
+    const resultado = calcular(n1, n2, op);
+    res.json({ metodo: 'Path', operacion: op, resultado });
+});
+
+// 3. MÉTODO BODY PARAMS
+// Ejemplo POST con JSON: { "n1": 10, "n2": 5, "op": "sumar" }
+app.post('/body', (req, res) => {
+    const { n1, n2, op } = req.body;
+    const resultado = calcular(n1, n2, op);
+    res.json({ metodo: 'Body', operacion: op, resultado });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Servidor multicalculadora corriendo en puerto ${PORT}`);
 });
