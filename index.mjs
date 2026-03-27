@@ -2,42 +2,64 @@ import express from 'express';
 import cors from 'cors';
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
-// 1. La lógica matemática (Soporta las 4 operaciones)
-const calcular = (n1, n2, op) => {
-    const num1 = Number(n1);
-    const num2 = Number(n2);
-    switch (op) {
-        case 'sumar': return num1 + num2;
-        case 'restar': return num1 - num2;
-        case 'multiplicar': return num1 * num2;
-        case 'dividir': return num2 !== 0 ? num1 / num2 : 'Error: Div/0';
-        default: return 'Operación no válida';
+// Configuración necesaria para conectar con Hostinger y leer JSON
+app.use(cors()); 
+app.use(express.json()); 
+
+// 1. SUMA - Usando Path Params (GET)
+// Ejemplo: /sumar/10/5
+app.get('/sumar/:n1/:n2', (req, res) => {
+    const { n1, n2 } = req.params;
+    const resultado = parseFloat(n1) + parseFloat(n2);
+    res.json({ 
+        operacion: 'suma (path params)', 
+        resultado: resultado 
+    });
+});
+
+// 2. RESTA - Usando Query Params (GET)
+// Ejemplo: /restar?n1=20&n2=8
+app.get('/restar', (req, res) => {
+    const { n1, n2 } = req.query;
+    const resultado = parseFloat(n1) - parseFloat(n2);
+    res.json({ 
+        operacion: 'resta (query params)', 
+        resultado: resultado 
+    });
+});
+
+// 3. MULTIPLICAR - Usando Body Params (POST)
+// Ejemplo: POST a /multiplicar con JSON {"n1": 4, "n2": 3}
+app.post('/multiplicar', (req, res) => {
+    const { n1, n2 } = req.body;
+    const resultado = parseFloat(n1) * parseFloat(n2);
+    res.json({ 
+        operacion: 'multiplicación (body params)', 
+        resultado: resultado 
+    });
+});
+
+// 4. DIVIDIR - Usando Body Params (POST)
+// Ejemplo: POST a /dividir con JSON {"n1": 10, "n2": 2}
+app.post('/dividir', (req, res) => {
+    const { n1, n2 } = req.body;
+    const num1 = parseFloat(n1);
+    const num2 = parseFloat(n2);
+
+    if (num2 === 0) {
+        return res.status(400).json({ error: "No se puede dividir por cero" });
     }
-};
-
-// 2. Ruta QUERY (Corregida con etiquetas para evitar el undefined)
-app.get('/query', (req, res) => {
-    const { n1, n2, op } = req.query;
-    const resultado = calcular(n1, n2, op);
-    res.json({ metodo: 'Query', operacion: op, resultado: resultado });
+    
+    const resultado = num1 / num2;
+    res.json({ 
+        operacion: 'división (body params)', 
+        resultado: resultado 
+    });
 });
 
-// 3. Ruta PATH (Corregida con etiquetas)
-app.get('/path/:op/:n1/:n2', (req, res) => {
-    const { op, n1, n2 } = req.params;
-    const resultado = calcular(n1, n2, op);
-    res.json({ metodo: 'Path', operacion: op, resultado: resultado });
-});
-
-// 4. Ruta BODY (Corregida con etiquetas)
-app.post('/body', (req, res) => {
-    const { n1, n2, op } = req.body;
-    const resultado = calcular(n1, n2, op);
-    res.json({ metodo: 'Body', operacion: op, resultado: resultado });
-});
-
+// Puerto dinámico para Render
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor activo en puerto ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Servidor de calculadora corriendo en el puerto ${PORT}`);
+});
